@@ -7,7 +7,7 @@ from scipy import ndarray
 import skimage as sk
 from skimage import transform
 from skimage import util
-
+import imutils
 
 IMAGE_PATH = '/media/Projects/shared/face_dataset/'
 DST_PATH = '/media/Projects/shared/face_dataset_v2/'
@@ -33,17 +33,19 @@ def copy_images():
                 r2 = indexes[i+1]
             else:
                 r1 = indexes[i]
-                r2 = (len(imgs))
+                r2 = (len(imgs)-1)
             randn = random.randint(r1, r2)
 
             chosen_img = imgs[randn]
             img = cv2.imread(IMAGE_PATH + chosen_img)
             cv2.imwrite(DST_PATH + chosen_img, img)
 
-def random_rotation(image_array: ndarray):
+copy_images()
+
+def random_rotation(image):
     # pick a random degree of rotation between 25% on the left and 25% on the right
     random_degree = random.uniform(-10, 10)
-    return sk.transform.rotate(image_array, random_degree)
+    return imutils.rotate(image, random_degree)
 
 def random_noise(image_array: ndarray):
     # add random noise to the image
@@ -67,19 +69,19 @@ print(most_common)
 
 available_transformations = {
     'rotate': random_rotation,
-    'noise': random_noise,
+    #'noise': random_noise,
 }
 
-for i in range(len(IDs):
-	if i != len(IDs)-1:
-		current_images = original_images[indexes[i]:indexes[i+1]]
+for i in range(len(IDs)):
+    if i == len(IDs)-1:
+        current_images = original_images[indexes[len(indexes)-1]:]
     else:
-		current_images = original_images[indexes[len(indexes)-1]:]
+        current_images = original_images[indexes[i]:indexes[i+1]]
     to200 = 200-len(current_images)
     print(to200)
     for j in range(to200):
         img_name = random.choice(current_images)
-        print(img_name)
+        #print(img_name)
         img = cv2.imread(DST_PATH + img_name)
         num_transformations_to_apply = random.randint(1, len(available_transformations))
         num_transformations = 0
@@ -88,4 +90,5 @@ for i in range(len(IDs):
             transformed_image = available_transformations[key](img)
             num_transformations += 1
         dst = DST_PATH + img_name[:len(img_name)-4] + "_" + str(j) + '.jpg'
+        print(dst)
         cv2.imwrite(dst, transformed_image)
