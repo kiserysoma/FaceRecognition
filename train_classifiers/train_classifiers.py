@@ -12,6 +12,7 @@ GET_EMBEDDINGS = True
 IMAGE_PATH = '/media/Projects/shared/face_dataset_v2/'
 
 images = sorted(os.listdir(IMAGE_PATH))
+print(len(images))
 IDs = []
 indexes = []
 buffer = []
@@ -42,6 +43,7 @@ for i in range(len(imgs)):
         IDs.append(ID)
     buffer.append(ID)
 most_common = [item for item in Counter(buffer).most_common()]
+#print(most_common)
 
 if GET_EMBEDDINGS:
     dfs = []
@@ -52,7 +54,7 @@ if GET_EMBEDDINGS:
     df.to_pickle("face_dataset_embeddings_df_v2.p")
 
 df = pd.read_pickle("face_dataset_embeddings_df_v2.p")
-
+print(len(IDs))
 print(most_common)
 print("Used images:",len(imgs))
 
@@ -75,10 +77,13 @@ for i in range(len(IDs)):
 
     #Train RandomForestClassifier
     X_train, X_test, y_train, y_test = train_test_split(df, labels, test_size=0.3)
-    rf_classifier = RandomForestClassifier(n_estimators=100)
+    rf_classifier = RandomForestClassifier(n_estimators=400)
     rf_classifier.fit(X_train,y_train)
     y_pred = rf_classifier.predict(X_test)
 
     print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
     print("Confusion matrix: \n", metrics.confusion_matrix(y_test, y_pred))
     print("Recall:", metrics.recall_score(y_test, y_pred))
+
+    filename = '/media/Projects/shared/Classifiers/' + str(IDs[i]) + '_RFclassifier.p'
+    pickle.dump(imgs, open(filename, 'wb') )
