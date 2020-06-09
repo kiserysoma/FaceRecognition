@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-#import face_recognition
+import face_recognition
 import cv2
 import pickle
 from collections import Counter
@@ -25,13 +25,12 @@ if GET_EMBEDDINGS:
         print(i_)
         i_ += 1
         img = cv2.imread(IMAGE_PATH + i)
-        #embedding = face_recognition.api.face_encodings(img)
-        embedding = 0
+        embedding = face_recognition.api.face_encodings(img)
         if len(embedding) == 1:
             embeddings.append(embedding)
             imgs.append(i)
-    #pickle.dump(embeddings, open('face_dataset_embeddings_v2.p', 'wb') )
-    #pickle.dump(imgs, open('img_names_v2.p', 'wb') )
+    pickle.dump(embeddings, open('face_dataset_embeddings_v2.p', 'wb') )
+    pickle.dump(imgs, open('img_names_v2.p', 'wb') )
 
 imgs = pickle.load( open ('img_names_v2.p', 'rb') )
 embeddings = pickle.load( open ('face_dataset_embeddings_v2.p', 'rb') )
