@@ -62,9 +62,9 @@ def evaluate_tree(tree_, print_tree):
                             print('row of the finding', j)
                             log.append('row of the feature: ' + str(i) + '\n')
                             log.append('row of the finding: ' + str(j) + '\n')
+
                             i_depth = rows[i].count('|')
                             j_depth = rows[j].count('|')
-
                             print("depth difference between two features:", abs(i_depth - j_depth))
                             log.append("depth difference between two features: " + str(abs(i_depth - j_depth)) + '\n')
                             try:
