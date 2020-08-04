@@ -65,6 +65,10 @@ def evaluate_tree(tree_, print_tree):
 
                             i_depth = rows[i].count('|')
                             j_depth = rows[j].count('|')
+                            print("feature depth: ", i_depth)
+                            print("finding depth: ", j_depth)
+                            log.append("feature depth: " + str(i_depth) + '\n')
+                            log.append("finding depth: " + str(j_depth) + '\n')
                             print("depth difference between two features:", abs(i_depth - j_depth))
                             log.append("depth difference between two features: " + str(abs(i_depth - j_depth)) + '\n')
                             try:
@@ -79,9 +83,9 @@ def evaluate_tree(tree_, print_tree):
                                 curr_depth = i_depth
                                 cond_i = ''
                                 for k in range(i, -1, -1):
-                                    if rows[k].count('|') == (curr_depth - 1):
+                                    if rows[k].count('|') == (curr_depth - 1) and rows[k].count('feature') != 0:
                                         f_ = str(rows[k].split('re')[1])
-                                        relation = f_.split(' ')[1]
+                                        prev_relation_i = f_.split(' ')[1]
                                         if len(f_.split(' ')[2]) == 0:
                                             f_val = float(f_.split(' ')[3])
                                         else:
@@ -90,7 +94,7 @@ def evaluate_tree(tree_, print_tree):
                                         f_ = str(f_.split(' ')[0][1:])
                                         f_ = str('feature_' + f_)
                                         curr_depth = rows[k].count('|')
-                                        cond_i = str(str(f_) + ' ' + str(relation) + ' ' + str(f_val) + ' && ' + cond_i)
+                                        cond_i = str(str(f_) + ' ' + str(prev_relation_i) + ' ' + str(f_val) + ' && ' + cond_i)
 
                                 # Print previous conditions
                                 cond_i = cond_i[0:len(cond_i) - 3]
@@ -116,9 +120,9 @@ def evaluate_tree(tree_, print_tree):
                                 curr_depth = j_depth
                                 cond_j = ''
                                 for k in range(j, -1, -1):
-                                    if rows[k].count('|') == (curr_depth - 1):
+                                    if rows[k].count('|') == (curr_depth - 1) and rows[k].count('feature') != 0:
                                         f_ = str(rows[k].split('re')[1])
-                                        relation = f_.split(' ')[1]
+                                        prev_relation_j = f_.split(' ')[1]
                                         if len(f_.split(' ')[2]) == 0:
                                             f_val = float(f_.split(' ')[3])
                                         else:
@@ -127,7 +131,7 @@ def evaluate_tree(tree_, print_tree):
                                         f_ = str(f_.split(' ')[0][1:])
                                         f_ = str('feature_' + f_)
                                         curr_depth = rows[k].count('|')
-                                        cond_j = str(str(f_) + ' ' + str(relation) + ' ' + str(f_val) + ' && ' + cond_j)
+                                        cond_j = str(str(f_) + ' ' + str(prev_relation_j) + ' ' + str(f_val) + ' && ' + cond_j)
 
                                 # Print previous conditions
                                 cond_j = cond_j[0:len(cond_j) - 3]
@@ -166,20 +170,20 @@ df = df.drop(columns='target')
 # Train model
 X_train, X_test, y_train, y_test = train_test_split(df, labels, test_size=0.3)
 model = RandomForestClassifier(max_depth=TREE_DEPTH, n_estimators=TREE_NUM)
-model.fit(X_test, y_test)
+model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
-
-# Print model scores
-print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-print("Recall:", metrics.recall_score(y_test, y_pred, average="weighted"))
-print("Precision:", metrics.precision_score(y_test, y_pred, average="weighted"))
-print("f1:", metrics.f1_score(y_test, y_pred, average="weighted"))
 
 # Save results
 if not os.path.exists('./LOG'):
     os.makedirs('./LOG')
 for i_ in range(len(model.estimators_)):
     DT = model.estimators_[i_]
-    message = evaluate_tree(DT, True)
+    message = evaluate_tree(DT, False)
     out = open("./LOG/dt_" + str(i_) + ".txt", "w+")
     out.writelines(message)
+
+# Print model scores
+print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+print("Recall:", metrics.recall_score(y_test, y_pred, average="weighted"))
+print("Precision:", metrics.precision_score(y_test, y_pred, average="weighted"))
+print("f1:", metrics.f1_score(y_test, y_pred, average="weighted"))
