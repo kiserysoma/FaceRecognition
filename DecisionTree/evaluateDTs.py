@@ -9,11 +9,14 @@ import os
 FEATURE_DIFFERENCE = 0.01
 TREE_DEPTH = 10
 TREE_NUM = 10
-DATA_PATH = '/Users/somakisery/Code/PyCharmProjects/venv/celebA_df.pickle'
+SHOW_DECISION_TREE = True
+EXTENDED_LOG = False
+MODEL_TYPE = 'RF'
+DATA_PATH = 'celebA_df.pickle'
 
 
-def evaluate_tree(tree_, print_tree):
-    log = []  # This variable used for saving the results
+def evaluate_tree(tree_, print_tree, ext_log):
+    log = []  # variable for saving the results
 
     text_representation = tree.export_text(tree_)
     rows = text_representation.split('\n')
@@ -58,19 +61,21 @@ def evaluate_tree(tree_, print_tree):
                             print('--------------------------------------------------------------')
                             print(f_name)
                             log.append('current feature: ' + f_name + '\n')
-                            print('row of the feature:', i)
-                            print('row of the finding', j)
-                            log.append('row of the feature: ' + str(i) + '\n')
-                            log.append('row of the finding: ' + str(j) + '\n')
+                            if ext_log:
+                                print('row of the feature:', i)
+                                print('row of the finding', j)
+                                log.append('row of the feature: ' + str(i) + '\n')
+                                log.append('row of the finding: ' + str(j) + '\n')
 
                             i_depth = rows[i].count('|')
                             j_depth = rows[j].count('|')
-                            print("feature depth: ", i_depth)
-                            print("finding depth: ", j_depth)
-                            log.append("feature depth: " + str(i_depth) + '\n')
-                            log.append("finding depth: " + str(j_depth) + '\n')
-                            print("depth difference between two features:", abs(i_depth - j_depth))
-                            log.append("depth difference between two features: " + str(abs(i_depth - j_depth)) + '\n')
+                            if ext_log:
+                                print("feature depth: ", i_depth)
+                                print("finding depth: ", j_depth)
+                                log.append("feature depth: " + str(i_depth) + '\n')
+                                log.append("finding depth: " + str(j_depth) + '\n')
+                                print("depth difference between two features:", abs(i_depth - j_depth))
+                                log.append("depth difference between two features: " + str(abs(i_depth - j_depth)) + '\n')
                             try:
                                 # Find the prediction leaf node
                                 for k in range(i, len(rows)):
@@ -142,14 +147,14 @@ def evaluate_tree(tree_, print_tree):
                                 for k in range(j, j + to_class_j + 1):
                                     print(rows[k])
                                     log.append(rows[k] + '\n')
+                                if ext_log:
+                                    diff_class_i = abs(i_depth_class - i_depth)
+                                    diff_class_j = abs(j_depth_class - j_depth)
 
-                                diff_class_i = abs(i_depth_class - i_depth)
-                                diff_class_j = abs(j_depth_class - j_depth)
-
-                                print('depth to prediction leaf node from ' + str(f_name) + ':', diff_class_i)
-                                print('depth to prediction leaf node from ' + str(f_name) + ' found: ', diff_class_j)
-                                log.append('depth to prediction leaf node from ' + str(f_name) + ': ' + str(diff_class_i) + '\n')
-                                log.append('depth to prediction leaf node from ' + str(f_name) + ': ' + str(diff_class_j) + '\n')
+                                    print('depth to prediction leaf node from ' + str(f_name) + ':', diff_class_i)
+                                    print('depth to prediction leaf node from ' + str(f_name) + ' found: ', diff_class_j)
+                                    log.append('depth to prediction leaf node from ' + str(f_name) + ': ' + str(diff_class_i) + '\n')
+                                    log.append('depth to prediction leaf node from ' + str(f_name) + ': ' + str(diff_class_j) + '\n')
 
                                 print('\n')
                                 print('\n')
@@ -169,18 +174,35 @@ df = df.drop(columns='target')
 
 # Train model
 X_train, X_test, y_train, y_test = train_test_split(df, labels, test_size=0.3)
-model = RandomForestClassifier(max_depth=TREE_DEPTH, n_estimators=TREE_NUM)
+if 'RF' == MODEL_TYPE:
+    model = RandomForestClassifier(max_depth=TREE_DEPTH, n_estimators=TREE_NUM)
+elif 'DT' == MODEL_TYPE:
+    model = tree.DecisionTreeClassifier(max_depth=TREE_DEPTH)
+else:
+    #Wrong input, do nothing
+    print('wrong input')
+
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 # Save results
 if not os.path.exists('./LOG'):
     os.makedirs('./LOG')
-for i_ in range(len(model.estimators_)):
-    DT = model.estimators_[i_]
-    message = evaluate_tree(DT, False)
-    out = open("./LOG/dt_" + str(i_) + ".txt", "w+")
+
+#Check decision tree(s)
+if 'RF' == MODEL_TYPE:
+    for i_ in range(len(model.estimators_)):
+        DT = model.estimators_[i_]
+        message = evaluate_tree(DT, SHOW_DECISION_TREE,EXTENDED_LOG)
+        out = open("./LOG/dt_" + str(i_) + ".txt", "w+")
+        out.writelines(message)
+elif 'DT' == MODEL_TYPE:
+    message = evaluate_tree(model, SHOW_DECISION_TREE,EXTENDED_LOG)
+    out = open("./LOG/DT.txt", "w+")
     out.writelines(message)
+else:
+    # Wrong input, do nothing
+    print('wrong input')
 
 # Print model scores
 print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
