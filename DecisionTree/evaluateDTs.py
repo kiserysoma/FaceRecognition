@@ -12,8 +12,8 @@ TREE_DEPTH = 10
 TREE_NUM = 10
 SHOW_DECISION_TREE = False
 EXTENDED_LOG = False
-MODEL_TYPE = 'DT'  # [RF, DT]
-DATASET = 'celebA'  # [face, celebA]
+MODEL_TYPE = 'RF'  # [RF, DT]
+DATASET = 'face'  # [face, celebA]
 if DATASET == 'celebA':
     DATA_PATH = 'celebA_df.pickle'
     PRED_TYPE = 'sex'
