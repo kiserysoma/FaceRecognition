@@ -4,21 +4,29 @@ from sklearn.model_selection import train_test_split
 from sklearn import metrics
 import pandas as pd
 import os
+import pickle
 
 # Set used parameters
-FEATURE_DIFFERENCE = 0.01
+FEATURE_DIFFERENCE = 0.001
 TREE_DEPTH = 10
 TREE_NUM = 10
-SHOW_DECISION_TREE = True
+SHOW_DECISION_TREE = False
 EXTENDED_LOG = False
-MODEL_TYPE = 'RF'
-DATA_PATH = 'celebA_df.pickle'
+MODEL_TYPE = 'DT'  # [RF, DT]
+DATASET = 'celebA'  # [face, celebA]
+if DATASET == 'celebA':
+    DATA_PATH = 'celebA_df.pickle'
+    PRED_TYPE = 'sex'
+elif DATASET == 'face':
+    PRED_TYPE = 'ID'  # [ID, Race]
+    DATA_PATH = 'face_dataset_embeddings_df_50.p'
+    IMG_PATH = 'img_names_50.p'
 
 
 def evaluate_tree(tree_, print_tree, ext_log):
     log = []  # variable for saving the results
 
-    text_representation = tree.export_text(tree_)
+    text_representation = tree.export_text(tree_, decimals=3)
     rows = text_representation.split('\n')
 
     if print_tree:
@@ -52,7 +60,7 @@ def evaluate_tree(tree_, print_tree, ext_log):
                             new_value = float(new_row.split(' ')[2])
 
                         # Feature has been found
-                        if (abs(new_value - f_value) < FEATURE_DIFFERENCE) and (new_relation[0] == relation[0]):
+                        if (abs(new_value - f_value) <= FEATURE_DIFFERENCE) and (new_relation[0] == relation[0]):
                             log.append('\n')
                             log.append('\n')
                             print('\n')
@@ -168,44 +176,76 @@ def evaluate_tree(tree_, print_tree, ext_log):
     return log
 
 
-df = pd.read_pickle(DATA_PATH)
-labels = df['target']
-df = df.drop(columns='target')
+def create_labels(path, pred_type):
+    labels = []
+    img_names = pickle.load(open(path, 'rb'))
+    for i in img_names:
+        if PRED_TYPE == 'Race':
+            val = i.split("_")[3]
+            if val == 'white':
+                labels.append(0)
+            elif val == 'black':
+                labels.append(1)
+            elif val == 'indian':
+                labels.append(2)
+            else:
+                labels.append(3)
+        else:
+            labels.append(i.split('_')[0])
+    return labels
 
-# Train model
-X_train, X_test, y_train, y_test = train_test_split(df, labels, test_size=0.3)
-if 'RF' == MODEL_TYPE:
-    model = RandomForestClassifier(max_depth=TREE_DEPTH, n_estimators=TREE_NUM)
-elif 'DT' == MODEL_TYPE:
-    model = tree.DecisionTreeClassifier(max_depth=TREE_DEPTH)
-else:
-    #Wrong input, do nothing
-    print('wrong input')
 
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
+def main():
 
-# Save results
-if not os.path.exists('./LOG'):
-    os.makedirs('./LOG')
+    if DATASET == 'celebA':
+        df = pd.read_pickle(DATA_PATH)
+        labels = df['target']
+        df = df.drop(columns='target')
+    elif DATASET == 'face':
+        labels = create_labels(IMG_PATH, PRED_TYPE)
+        df = pd.read_pickle(DATA_PATH)
+    else:
+        # Wrong input, do nothing
+        print('wrong input')
 
-#Check decision tree(s)
-if 'RF' == MODEL_TYPE:
-    for i_ in range(len(model.estimators_)):
-        DT = model.estimators_[i_]
-        message = evaluate_tree(DT, SHOW_DECISION_TREE,EXTENDED_LOG)
-        out = open("./LOG/dt_" + str(i_) + ".txt", "w+")
+    # Train model
+    X_train, X_test, y_train, y_test = train_test_split(df, labels, test_size=0.3)
+    if 'RF' == MODEL_TYPE:
+        model = RandomForestClassifier(max_depth=TREE_DEPTH, n_estimators=TREE_NUM)
+    elif 'DT' == MODEL_TYPE:
+        model = tree.DecisionTreeClassifier(max_depth=TREE_DEPTH)
+    else:
+        # Wrong input, do nothing
+        print('wrong input')
+
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    # Save results
+    if not os.path.exists('./LOG/' + DATASET + '/' + PRED_TYPE):
+        os.makedirs('./LOG/' + DATASET + '/' + PRED_TYPE)
+
+    # Check decision tree(s)
+    if 'RF' == MODEL_TYPE:
+        for i_ in range(len(model.estimators_)):
+            dt = model.estimators_[i_]
+            message = evaluate_tree(dt, SHOW_DECISION_TREE, EXTENDED_LOG)
+            out = open('./LOG/' + DATASET + '/' + PRED_TYPE + '/dt_' + str(i_) + '.txt', "w+")
+            out.writelines(message)
+    elif 'DT' == MODEL_TYPE:
+        message = evaluate_tree(model, SHOW_DECISION_TREE, EXTENDED_LOG)
+        out = open('./LOG/' + DATASET + '/' + PRED_TYPE + '/DT.txt', "w+")
         out.writelines(message)
-elif 'DT' == MODEL_TYPE:
-    message = evaluate_tree(model, SHOW_DECISION_TREE,EXTENDED_LOG)
-    out = open("./LOG/DT.txt", "w+")
-    out.writelines(message)
-else:
-    # Wrong input, do nothing
-    print('wrong input')
+    else:
+        # Wrong input, do nothing
+        print('wrong input')
 
-# Print model scores
-print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-print("Recall:", metrics.recall_score(y_test, y_pred, average="weighted"))
-print("Precision:", metrics.precision_score(y_test, y_pred, average="weighted"))
-print("f1:", metrics.f1_score(y_test, y_pred, average="weighted"))
+    # Print model scores
+    print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    print("Recall:", metrics.recall_score(y_test, y_pred, average="weighted"))
+    print("Precision:", metrics.precision_score(y_test, y_pred, average="weighted"))
+    print("f1:", metrics.f1_score(y_test, y_pred, average="weighted"))
+
+
+if __name__ == '__main__':
+    main()
